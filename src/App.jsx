@@ -1,6 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import EnergyMindDashboard from './components/dashboard';
 import BuildingView from './components/BuildingView';
+import AlertsView from './components/AlertsView';
+import RecommendationsView from './components/RecommendationsView';
+import AnalyticsView from './components/AnalyticsView';
+import ReportsView from './components/ReportsView';
+import UsersView from './components/UsersView';
+import SettingsView from './components/SettingsView';
 import {
   ArrowRight,
   Building2,
@@ -31,7 +37,7 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [currentProfile, setCurrentProfile] = useState(null);
   const [isCheckingSession, setIsCheckingSession] = useState(true);
-  
+
   const [activeNav, setActiveNav] = useState('Dashboard');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -51,7 +57,7 @@ export default function App() {
         await supabase.auth.signOut();
         setCurrentUser(null);
         setCurrentProfile(null);
-        setFormMessage('Your account is awaiting university approval. Please contact your university administrator.');
+        setFormMessage('Your account is awaiting university approval.');
         return false;
       }
 
@@ -62,7 +68,7 @@ export default function App() {
       await supabase.auth.signOut();
       setCurrentUser(null);
       setCurrentProfile(null);
-      setFormMessage(err.message || 'Could not validate account authorization.');
+      setFormMessage(err.message || 'Authorization failed.');
       return false;
     }
   };
@@ -83,13 +89,9 @@ export default function App() {
       }
     };
 
-    const timer = setTimeout(() => {
-      if (isMounted) setIsCheckingSession(false);
-    }, 2000);
-
     initializeSession();
 
-    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_OUT') {
         setCurrentUser(null);
         setCurrentProfile(null);
@@ -103,8 +105,7 @@ export default function App() {
 
     return () => {
       isMounted = false;
-      clearTimeout(timer);
-      authListener.subscription.unsubscribe();
+      subscription?.unsubscribe();
     };
   }, []);
 
@@ -178,12 +179,12 @@ export default function App() {
       });
 
       if (error) {
-        setFormMessage('The verification code is invalid or expired. Please try again or request a new code.');
+        setFormMessage('The verification code is invalid or expired. Please try again.');
         return;
       }
 
       if (!data.user) {
-        setFormMessage('Could not verify your account. Please request a new code.');
+        setFormMessage('Could not verify your account.');
         return;
       }
 
@@ -193,7 +194,7 @@ export default function App() {
         setActiveNav('Dashboard');
       }
     } catch (error) {
-      setFormMessage(error.message || 'Could not verify the code. Please try again.');
+      setFormMessage(error.message || 'Could not verify the code.');
     } finally {
       setIsLoading(false);
     }
@@ -214,9 +215,7 @@ export default function App() {
   const getInitials = (name) => {
     if (!name) return 'U';
     const parts = name.trim().split(' ');
-    if (parts.length >= 2) {
-      return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
-    }
+    if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
     return name.slice(0, 2).toUpperCase();
   };
 
@@ -230,176 +229,162 @@ export default function App() {
     );
   }
 
-  // Authenticated Application Router
+  // Authenticated View Router
   if (currentUser && currentProfile) {
     const userName = currentProfile.full_name || currentUser.email || 'User';
     const userRole = currentProfile.role || 'staff';
 
-    if (activeNav === 'Building') {
-      return (
-        <div className="flex h-screen w-screen overflow-hidden bg-slate-50 font-sans">
-          {/* Mobile Overlay */}
-          {isMobileMenuOpen && (
-            <div
-              className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-40 lg:hidden"
-              onClick={() => setIsMobileMenuOpen(false)}
+    return (
+      <div className="flex h-screen w-screen overflow-hidden bg-slate-50 font-sans">
+        {/* Mobile Menu Backdrop */}
+        {isMobileMenuOpen && (
+          <div
+            className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-40 lg:hidden"
+            onClick={() => setIsMobileMenuOpen(false)}
+          />
+        )}
+
+        {/* Global Navigation Sidebar */}
+        <aside
+          className={`fixed lg:static top-0 bottom-0 left-0 z-50 w-64 bg-[#0B1727] text-slate-300 flex flex-col justify-between p-4 transform transition-transform duration-300 ease-in-out shrink-0 h-full ${
+            isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+          }`}
+        >
+          <div className="flex flex-col h-full justify-between">
+            <div>
+              <div className="flex items-center justify-between px-4 py-3">
+                <div>
+                  <h1 className="text-white font-bold text-lg leading-tight">CampusTwin</h1>
+                  <p className="text-blue-400 font-semibold text-sm">EnergyMind</p>
+                </div>
+                <button onClick={() => setIsMobileMenuOpen(false)} className="lg:hidden text-slate-400 hover:text-white">
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              <nav className="mt-6 space-y-1">
+                <button
+                  onClick={() => { setActiveNav('Dashboard'); setIsMobileMenuOpen(false); }}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm transition cursor-pointer ${
+                    activeNav === 'Dashboard' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                  }`}
+                >
+                  <LayoutDashboard className="w-5 h-5" />
+                  Dashboard
+                </button>
+                <button
+                  onClick={() => { setActiveNav('Building'); setIsMobileMenuOpen(false); }}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm transition cursor-pointer ${
+                    activeNav === 'Building' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                  }`}
+                >
+                  <Building2 className="w-5 h-5" />
+                  Building
+                </button>
+                <button
+                  onClick={() => { setActiveNav('Alerts'); setIsMobileMenuOpen(false); }}
+                  className={`w-full flex items-center justify-between px-4 py-3 rounded-xl font-medium text-sm transition cursor-pointer ${
+                    activeNav === 'Alerts' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <Bell className="w-5 h-5" />
+                    Alerts
+                  </div>
+                  <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full font-bold">6</span>
+                </button>
+                <button
+                  onClick={() => { setActiveNav('Recommendations'); setIsMobileMenuOpen(false); }}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm transition cursor-pointer ${
+                    activeNav === 'Recommendations' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                  }`}
+                >
+                  <Lightbulb className="w-5 h-5" />
+                  Recommendations
+                </button>
+                <button
+                  onClick={() => { setActiveNav('Analytics'); setIsMobileMenuOpen(false); }}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm transition cursor-pointer ${
+                    activeNav === 'Analytics' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                  }`}
+                >
+                  <BarChart3 className="w-5 h-5" />
+                  Analytics
+                </button>
+                <button
+                  onClick={() => { setActiveNav('Reports'); setIsMobileMenuOpen(false); }}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm transition cursor-pointer ${
+                    activeNav === 'Reports' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                  }`}
+                >
+                  <FileText className="w-5 h-5" />
+                  Reports
+                </button>
+                <button
+                  onClick={() => { setActiveNav('Users'); setIsMobileMenuOpen(false); }}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm transition cursor-pointer ${
+                    activeNav === 'Users' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                  }`}
+                >
+                  <Users className="w-5 h-5" />
+                  Users
+                </button>
+                <button
+                  onClick={() => { setActiveNav('Settings'); setIsMobileMenuOpen(false); }}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm transition cursor-pointer ${
+                    activeNav === 'Settings' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                  }`}
+                >
+                  <Settings className="w-5 h-5" />
+                  Settings
+                </button>
+              </nav>
+            </div>
+
+            <div className="pt-4 border-t border-slate-800 flex items-center justify-between px-2">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-800 font-bold flex items-center justify-center text-sm shrink-0 uppercase">
+                  {getInitials(userName)}
+                </div>
+                <div className="truncate">
+                  <p className="text-white text-sm font-semibold leading-tight truncate">{userName}</p>
+                  <p className="text-slate-400 text-xs truncate">
+                    {userRole === 'admin' ? 'Facility Administrator' : 'Staff Member'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </aside>
+
+        {/* Main Content Area */}
+        <main className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
+          <div className="lg:hidden p-4 bg-[#0B1727] text-white flex items-center justify-between">
+            <button onClick={() => setIsMobileMenuOpen(true)} className="p-2 rounded-lg bg-slate-800 text-slate-200">
+              <Menu className="w-6 h-6" />
+            </button>
+            <span className="font-bold text-sm">{activeNav}</span>
+          </div>
+
+          {activeNav === 'Building' && <BuildingView onNavigateToDashboard={() => setActiveNav('Dashboard')} />}
+          {activeNav === 'Alerts' && <AlertsView userName={userName} />}
+          {activeNav === 'Recommendations' && <RecommendationsView userName={userName} />}
+          {activeNav === 'Analytics' && <AnalyticsView userName={userName} />}
+          {activeNav === 'Reports' && <ReportsView userName={userName} />}
+          {activeNav === 'Users' && <UsersView userName={userName} />}
+          {activeNav === 'Settings' && <SettingsView userName={userName} />}
+          {activeNav === 'Dashboard' && (
+            <EnergyMindDashboard
+              userName={userName}
+              userRole={userRole}
+              userEmail={currentUser.email || ''}
+              onSignOut={handleSignOut}
+              activeNav={activeNav}
+              setActiveNav={setActiveNav}
             />
           )}
-
-          {/* Navigation Sidebar */}
-          <aside
-            className={`fixed lg:static top-0 bottom-0 left-0 z-50 w-64 bg-[#0B1727] text-slate-300 flex flex-col justify-between p-4 transform transition-transform duration-300 ease-in-out shrink-0 h-full ${
-              isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
-            }`}
-          >
-            <div className="flex flex-col h-full justify-between">
-              <div>
-                <div className="flex items-center justify-between px-4 py-3">
-                  <div>
-                    <h1 className="text-white font-bold text-lg leading-tight">CampusTwin</h1>
-                    <p className="text-blue-400 font-semibold text-sm">EnergyMind</p>
-                  </div>
-                  <button
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="lg:hidden text-slate-400 hover:text-white"
-                  >
-                    <X className="w-6 h-6" />
-                  </button>
-                </div>
-
-                <nav className="mt-6 space-y-1">
-                  <button
-                    onClick={() => {
-                      setActiveNav('Dashboard');
-                      setIsMobileMenuOpen(false);
-                    }}
-                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-slate-800 hover:text-white font-medium text-sm transition cursor-pointer"
-                  >
-                    <LayoutDashboard className="w-5 h-5" />
-                    Dashboard
-                  </button>
-                  <button
-                    onClick={() => {
-                      setActiveNav('Building');
-                      setIsMobileMenuOpen(false);
-                    }}
-                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-blue-600 text-white font-medium text-sm transition cursor-pointer"
-                  >
-                    <Building2 className="w-5 h-5" />
-                    Building
-                  </button>
-                  <button
-                    onClick={() => {
-                      setActiveNav('Alerts');
-                      setIsMobileMenuOpen(false);
-                    }}
-                    className="w-full flex items-center justify-between px-4 py-3 rounded-xl text-slate-400 hover:bg-slate-800 hover:text-white font-medium text-sm transition cursor-pointer"
-                  >
-                    <div className="flex items-center gap-3">
-                      <Bell className="w-5 h-5" />
-                      Alerts
-                    </div>
-                    <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full font-bold">
-                      6
-                    </span>
-                  </button>
-                  <button
-                    onClick={() => {
-                      setActiveNav('Recommendations');
-                      setIsMobileMenuOpen(false);
-                    }}
-                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-slate-800 hover:text-white font-medium text-sm transition cursor-pointer"
-                  >
-                    <Lightbulb className="w-5 h-5" />
-                    Recommendations
-                  </button>
-                  <button
-                    onClick={() => {
-                      setActiveNav('Analytics');
-                      setIsMobileMenuOpen(false);
-                    }}
-                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-slate-800 hover:text-white font-medium text-sm transition cursor-pointer"
-                  >
-                    <BarChart3 className="w-5 h-5" />
-                    Analytics
-                  </button>
-                  <button
-                    onClick={() => {
-                      setActiveNav('Reports');
-                      setIsMobileMenuOpen(false);
-                    }}
-                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-slate-800 hover:text-white font-medium text-sm transition cursor-pointer"
-                  >
-                    <FileText className="w-5 h-5" />
-                    Reports
-                  </button>
-                  <button
-                    onClick={() => {
-                      setActiveNav('Users');
-                      setIsMobileMenuOpen(false);
-                    }}
-                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-slate-800 hover:text-white font-medium text-sm transition cursor-pointer"
-                  >
-                    <Users className="w-5 h-5" />
-                    Users
-                  </button>
-                  <button
-                    onClick={() => {
-                      setActiveNav('Settings');
-                      setIsMobileMenuOpen(false);
-                    }}
-                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-slate-800 hover:text-white font-medium text-sm transition cursor-pointer"
-                  >
-                    <Settings className="w-5 h-5" />
-                    Settings
-                  </button>
-                </nav>
-              </div>
-
-              <div className="pt-4 border-t border-slate-800 flex items-center justify-between px-2">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-800 font-bold flex items-center justify-center text-sm shrink-0">
-                    {getInitials(userName)}
-                  </div>
-                  <div className="truncate">
-                    <p className="text-white text-sm font-semibold leading-tight truncate">
-                      {userName}
-                    </p>
-                    <p className="text-slate-400 text-xs truncate">
-                      {userRole === 'admin' ? 'Facility Administrator' : 'Staff Member'}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </aside>
-
-          {/* Main Building Container */}
-          <main className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
-            <div className="lg:hidden p-4 bg-[#0B1727] text-white flex items-center justify-between">
-              <button
-                onClick={() => setIsMobileMenuOpen(true)}
-                className="p-2 rounded-lg bg-slate-800 text-slate-200"
-              >
-                <Menu className="w-6 h-6" />
-              </button>
-              <span className="font-bold text-sm">Building View</span>
-            </div>
-            <BuildingView onNavigateToDashboard={() => setActiveNav('Dashboard')} />
-          </main>
-        </div>
-      );
-    }
-
-    return (
-      <EnergyMindDashboard
-        userName={userName}
-        userRole={userRole}
-        userEmail={currentUser.email || ''}
-        onSignOut={handleSignOut}
-        activeNav={activeNav}
-        setActiveNav={setActiveNav}
-      />
+        </main>
+      </div>
     );
   }
 
@@ -644,7 +629,8 @@ export default function App() {
           </form>
 
           <div className="mt-8 pt-4 border-t border-slate-100 text-center text-[11px] sm:text-xs text-slate-500 space-y-0.5">
-            <p className="font-semibold text-slate-600">Use University verified email</p>
+            <p className="font-semibold text-slate-600">B.Tech Major Project 2026–27</p>
+            <p>School of Computer Science and Engineering</p>
             <p>IILM University, Greater Noida</p>
           </div>
         </div>
