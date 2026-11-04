@@ -39,6 +39,7 @@ export default function App() {
   const [isCheckingSession, setIsCheckingSession] = useState(true);
 
   const [activeNav, setActiveNav] = useState('Dashboard');
+  const [selectedBuilding, setSelectedBuilding] = useState('All');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const validateUserProfile = async (user) => {
@@ -229,14 +230,12 @@ export default function App() {
     );
   }
 
-  // Authenticated View Router
   if (currentUser && currentProfile) {
     const userName = currentProfile.full_name || currentUser.email || 'User';
     const userRole = currentProfile.role || 'staff';
 
     return (
       <div className="flex h-screen w-screen overflow-hidden bg-slate-50 font-sans">
-        {/* Mobile Menu Backdrop */}
         {isMobileMenuOpen && (
           <div
             className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-40 lg:hidden"
@@ -244,7 +243,6 @@ export default function App() {
           />
         )}
 
-        {/* Global Navigation Sidebar */}
         <aside
           className={`fixed lg:static top-0 bottom-0 left-0 z-50 w-64 bg-[#0B1727] text-slate-300 flex flex-col justify-between p-4 transform transition-transform duration-300 ease-in-out shrink-0 h-full ${
             isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
@@ -291,7 +289,6 @@ export default function App() {
                     <Bell className="w-5 h-5" />
                     Alerts
                   </div>
-                  <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full font-bold">6</span>
                 </button>
                 <button
                   onClick={() => { setActiveNav('Recommendations'); setIsMobileMenuOpen(false); }}
@@ -357,7 +354,6 @@ export default function App() {
           </div>
         </aside>
 
-        {/* Main Content Area */}
         <main className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
           <div className="lg:hidden p-4 bg-[#0B1727] text-white flex items-center justify-between">
             <button onClick={() => setIsMobileMenuOpen(true)} className="p-2 rounded-lg bg-slate-800 text-slate-200">
@@ -366,7 +362,13 @@ export default function App() {
             <span className="font-bold text-sm">{activeNav}</span>
           </div>
 
-          {activeNav === 'Building' && <BuildingView onNavigateToDashboard={() => setActiveNav('Dashboard')} />}
+          {activeNav === 'Building' && (
+            <BuildingView
+              onNavigateToDashboard={() => setActiveNav('Dashboard')}
+              selectedBuilding={selectedBuilding}
+              setSelectedBuilding={setSelectedBuilding}
+            />
+          )}
           {activeNav === 'Alerts' && <AlertsView userName={userName} />}
           {activeNav === 'Recommendations' && <RecommendationsView userName={userName} />}
           {activeNav === 'Analytics' && <AnalyticsView userName={userName} />}
@@ -381,6 +383,8 @@ export default function App() {
               onSignOut={handleSignOut}
               activeNav={activeNav}
               setActiveNav={setActiveNav}
+              selectedBuilding={selectedBuilding}
+              setSelectedBuilding={setSelectedBuilding}
             />
           )}
         </main>
@@ -388,7 +392,6 @@ export default function App() {
     );
   }
 
-  // Unauthenticated Login Screen
   return (
     <div className="h-screen w-screen flex flex-col lg:flex-row font-sans bg-slate-50 text-slate-800 antialiased selection:bg-sky-500 selection:text-white overflow-hidden">
       <div className="relative w-full lg:w-7/12 h-auto lg:h-full bg-slate-900 text-white flex flex-col justify-between p-6 sm:p-10 lg:p-12 overflow-hidden shrink-0">
